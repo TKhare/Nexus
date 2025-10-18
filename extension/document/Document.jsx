@@ -1,20 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import Toolbar from './Toolbar.jsx';
 import MarkdownRenderer from './MarkdownRenderer.jsx';
+import MarkdownEditor from './MarkdownEditor.jsx';
 import { DocumentBuilder } from '../utils/markdown.js';
+
+const STORAGE_KEY_EDITED_MARKDOWN = 'editedMarkdown';
 
 export default function Document() {
   const [markdown, setMarkdown] = useState('');
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState(null);
+  const [isEditMode, setIsEditMode] = useState(false);
   const documentBuilder = new DocumentBuilder();
 
   useEffect(() => {
     loadDocument();
 
-    // Listen for storage changes to auto-refresh
+    // Listen for storage changes to auto-refresh (only if not in edit mode)
     const handleStorageChange = () => {
-      loadDocument();
+      if (!isEditMode) {
+        loadDocument();
+      }
     };
 
     chrome.storage.onChanged.addListener(handleStorageChange);
@@ -22,14 +28,28 @@ export default function Document() {
     return () => {
       chrome.storage.onChanged.removeListener(handleStorageChange);
     };
-  }, []);
+  }, [isEditMode]);
 
   const loadDocument = async () => {
     try {
       setLoading(true);
+      
+      // Check if there's edited markdown in storage
+      const result = await chrome.storage.local.get([STORAGE_KEY_EDITED_MARKDOWN]);
+      const editedMarkdown = result[STORAGE_KEY_EDITED_MARKDOWN];
+      
+      if (editedMarkdown) {
+        // Use edited markdown as source of truth
+        setMarkdown(editedMarkdown);
+      } else {
+        // Generate from captures
+        await documentBuilder.load();
+        const md = await documentBuilder.generateMarkdown(false);
+        setMarkdown(md);
+      }
+      
+      // Always load stats from captures
       await documentBuilder.load();
-      const md = await documentBuilder.generateMarkdown(false);
-      setMarkdown(md);
       setStats(documentBuilder.getStats());
     } catch (error) {
       console.error('Error loading document:', error);
@@ -80,6 +100,26 @@ export default function Document() {
     loadDocument();
   };
 
+  const handleEditMode = () => {
+    setIsEditMode(true);
+  };
+
+  const handleSaveMarkdown = async (editedMarkdown) => {
+    try {
+      // Save edited markdown to storage
+      await chrome.storage.local.set({ [STORAGE_KEY_EDITED_MARKDOWN]: editedMarkdown });
+      setMarkdown(editedMarkdown);
+      alert('Markdown saved successfully!');
+    } catch (error) {
+      console.error('Error saving markdown:', error);
+      alert('Failed to save markdown. Please try again.');
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditMode(false);
+  };
+
   if (loading) {
     return (
       <div className="document-container">
@@ -99,10 +139,20 @@ export default function Document() {
         onCopy={handleCopy}
         onClear={handleClear}
         onRefresh={handleRefresh}
+        onEditMode={handleEditMode}
+        isEditMode={isEditMode}
       />
-      <div className="document-content">
-        <MarkdownRenderer markdown={markdown} />
-      </div>
+      {isEditMode ? (
+        <MarkdownEditor
+          initialMarkdown={markdown}
+          onSave={handleSaveMarkdown}
+          onCancel={handleCancelEdit}
+        />
+      ) : (
+        <div className="document-content">
+          <MarkdownRenderer markdown={markdown} />
+        </div>
+      )}
     </div>
   );
 }
