@@ -95,6 +95,214 @@ body {
   display: block;
 }
 
+/* Markdown Preview */
+.markdown-preview {
+  width: 100%;
+  margin-bottom: 16px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #e0e0e0;
+  background: #fafafa;
+}
+
+.content-type-badge {
+  display: inline-block;
+  padding: 4px 8px;
+  background: #4A90E2;
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 4px;
+  margin-bottom: 12px;
+}
+
+.markdown-content {
+  padding: 16px;
+  background: white;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.markdown-content h1,
+.markdown-content h2,
+.markdown-content h3,
+.markdown-content h4,
+.markdown-content h5,
+.markdown-content h6 {
+  margin: 0 0 12px 0;
+  color: #333;
+  font-weight: 600;
+}
+
+.markdown-content h1 { font-size: 20px; }
+.markdown-content h2 { font-size: 18px; }
+.markdown-content h3 { font-size: 16px; }
+.markdown-content h4 { font-size: 14px; }
+
+.markdown-content p {
+  margin: 0 0 12px 0;
+  line-height: 1.6;
+  color: #333;
+}
+
+.markdown-content code {
+  background: #f5f5f5;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 0.9em;
+}
+
+.markdown-content pre {
+  background: #f5f5f5;
+  padding: 12px;
+  border-radius: 6px;
+  overflow-x: auto;
+  margin: 12px 0;
+}
+
+.markdown-content pre code {
+  background: none;
+  padding: 0;
+}
+
+.markdown-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 12px 0;
+}
+
+.markdown-content th,
+.markdown-content td {
+  padding: 8px 12px;
+  text-align: left;
+  border: 1px solid #e0e0e0;
+}
+
+.markdown-content th {
+  background: #f8f9fa;
+  font-weight: 600;
+}
+
+.markdown-content ul,
+.markdown-content ol {
+  margin: 12px 0;
+  padding-left: 20px;
+}
+
+.markdown-content li {
+  margin: 4px 0;
+  line-height: 1.6;
+}
+
+.markdown-content blockquote {
+  margin: 12px 0;
+  padding: 8px 16px;
+  border-left: 4px solid #4A90E2;
+  background: #f8f9fa;
+  color: #666;
+}
+
+.markdown-content a {
+  color: #4A90E2;
+  text-decoration: none;
+}
+
+.markdown-content a:hover {
+  text-decoration: underline;
+}
+
+/* Math equation styling */
+.markdown-content .katex {
+  font-size: 1.1em;
+}
+
+.markdown-content .katex-display {
+  margin: 16px 0;
+  text-align: center;
+}
+
+/* Enhanced table styling */
+.markdown-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 16px 0;
+  font-size: 14px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.markdown-content th,
+.markdown-content td {
+  padding: 12px 16px;
+  text-align: left;
+  border: 1px solid #e0e0e0;
+}
+
+.markdown-content th {
+  background: #f8f9fa;
+  font-weight: 600;
+  color: #333;
+  border-bottom: 2px solid #4A90E2;
+}
+
+.markdown-content tr:nth-child(even) {
+  background: #fafafa;
+}
+
+.markdown-content tr:hover {
+  background: #f0f4f8;
+}
+
+/* Code block enhancements */
+.markdown-content pre {
+  background: #f8f9fa;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 16px;
+  overflow-x: auto;
+  margin: 16px 0;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.markdown-content pre code {
+  background: none;
+  padding: 0;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+}
+
+/* Inline code styling */
+.markdown-content code {
+  background: #f0f0f0;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 0.9em;
+  color: #d63384;
+}
+
+/* List styling improvements */
+.markdown-content ul,
+.markdown-content ol {
+  margin: 16px 0;
+  padding-left: 24px;
+}
+
+.markdown-content li {
+  margin: 6px 0;
+  line-height: 1.6;
+}
+
+/* Blockquote styling */
+.markdown-content blockquote {
+  margin: 16px 0;
+  padding: 12px 20px;
+  border-left: 4px solid #4A90E2;
+  background: #f8f9fa;
+  color: #555;
+  border-radius: 0 6px 6px 0;
+}
+
 /* Explanation Section */
 .explanation-section {
   margin-bottom: 16px;

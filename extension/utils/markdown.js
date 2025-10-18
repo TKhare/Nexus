@@ -50,20 +50,37 @@ export class DocumentBuilder {
       md += `## ${sectionName}\n\n`;
 
       for (const capture of captures) {
-        // Get image reference
-        let imageRef = capture.imagePath || capture.imageUrl;
+        // Check if we have markdown content to use instead of image
+        const hasMarkdownContent = capture.markdown_content && capture.markdown_content.trim().length > 0;
+        const shouldShowImage = !hasMarkdownContent || capture.content_type === 'diagram' || capture.content_type === 'visual' || capture.content_type === 'chart';
 
-        // If embedding images, load from IndexedDB and convert to base64
-        if (embedImages && capture.id) {
-          const { getImage } = await import('./imageStorage.js');
-          const base64 = await getImage(capture.id);
-          if (base64) {
-            imageRef = base64;
+        if (hasMarkdownContent && !shouldShowImage) {
+          // Use markdown content instead of image
+          md += `### ${capture.content_type === 'code' ? '📝 Code' : 
+                     capture.content_type === 'equation' ? '🧮 Equation' :
+                     capture.content_type === 'table' ? '📊 Table' :
+                     capture.content_type === 'text' ? '📄 Text' :
+                     capture.content_type === 'chart' ? '📊 Chart' :
+                     capture.content_type === 'diagram' ? '📐 Diagram' :
+                     capture.content_type === 'visual' ? '📈 Visual Content' : 'Content'}\n\n`;
+          
+          md += `${capture.markdown_content}\n\n`;
+        } else {
+          // Use image as before
+          let imageRef = capture.imagePath || capture.imageUrl;
+
+          // If embedding images, load from IndexedDB and convert to base64
+          if (embedImages && capture.id) {
+            const { getImage } = await import('./imageStorage.js');
+            const base64 = await getImage(capture.id);
+            if (base64) {
+              imageRef = base64;
+            }
           }
-        }
 
-        // Add screenshot
-        md += `![Screenshot](${imageRef})\n`;
+          // Add screenshot
+          md += `![Screenshot](${imageRef})\n`;
+        }
 
         // Add metadata
         if (capture.sourceUrl) {
@@ -71,8 +88,10 @@ export class DocumentBuilder {
         }
         md += `*Captured at: ${new Date(capture.timestamp).toLocaleString()}*\n\n`;
 
-        // Add explanation
-        md += `${capture.explanation}\n\n`;
+        // Add explanation (only if not using markdown content or as additional notes)
+        if (capture.explanation && (!hasMarkdownContent || capture.explanation.trim() !== capture.markdown_content.trim())) {
+          md += `**Notes:** ${capture.explanation}\n\n`;
+        }
 
         // Add separator
         md += `---\n\n`;

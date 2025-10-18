@@ -1,3 +1,6 @@
+/* Import KaTeX CSS for math rendering */
+@import 'katex/dist/katex.min.css';
+
 /* Document Container */
 body {
   margin: 0;
@@ -270,6 +273,53 @@ body {
 .markdown-body th {
   background: #f5f7fa;
   font-weight: 600;
+}
+
+/* Math equation styling */
+.markdown-body .katex {
+  font-size: 1.1em;
+}
+
+.markdown-body .katex-display {
+  margin: 24px 0;
+  text-align: center;
+  background: #f8f9fa;
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+}
+
+/* Enhanced table styling for document */
+.markdown-body table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 24px 0;
+  font-size: 15px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.markdown-body th,
+.markdown-body td {
+  padding: 16px 20px;
+  text-align: left;
+  border: 1px solid #e0e0e0;
+}
+
+.markdown-body th {
+  background: #f8f9fa;
+  font-weight: 600;
+  color: #333;
+  border-bottom: 2px solid #4A90E2;
+}
+
+.markdown-body tr:nth-child(even) {
+  background: #fafafa;
+}
+
+.markdown-body tr:hover {
+  background: #f0f4f8;
 }
 
 /* Responsive */

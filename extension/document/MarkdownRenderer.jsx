@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
 import { getImage } from '../utils/imageStorage.js';
+import 'katex/dist/katex.min.css';
 
 // Image component that loads from IndexedDB
 function MarkdownImage({ src, alt, ...props }) {
@@ -57,7 +60,8 @@ export default function MarkdownRenderer({ markdown }) {
   return (
     <div className="markdown-body">
       <ReactMarkdown
-        remarkPlugins={[remarkGfm]}
+        remarkPlugins={[remarkGfm, remarkMath]}
+        rehypePlugins={[rehypeKatex]}
         components={{
           // Custom image rendering
           img: MarkdownImage,

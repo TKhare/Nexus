@@ -12,9 +12,9 @@ export default function CaptureOverlay({ onCapture, onCancel }) {
 
   // Handle mouse down - start selection
   const handleMouseDown = (e) => {
-    const rect = overlayRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    // Use viewport coordinates (clientX/Y) since captureVisibleTab captures the viewport
+    const x = e.clientX;
+    const y = e.clientY;
 
     setStartPos({ x, y });
     setCurrentPos({ x, y });
@@ -25,9 +25,9 @@ export default function CaptureOverlay({ onCapture, onCancel }) {
   const handleMouseMove = (e) => {
     if (!isSelecting) return;
 
-    const rect = overlayRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    // Use viewport coordinates (clientX/Y) since captureVisibleTab captures the viewport
+    const x = e.clientX;
+    const y = e.clientY;
 
     setCurrentPos({ x, y });
   };
@@ -36,17 +36,46 @@ export default function CaptureOverlay({ onCapture, onCancel }) {
   const handleMouseUp = (e) => {
     if (!isSelecting) return;
 
-    const rect = overlayRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    // Use viewport coordinates (clientX/Y) since captureVisibleTab captures the viewport
+    const x = e.clientX;
+    const y = e.clientY;
 
-    // Calculate region bounds
+    // Debug mouse positions
+    console.log('Mouse positions:', {
+      startPos,
+      currentPos: { x, y },
+      pageX: e.pageX,
+      pageY: e.pageY,
+      clientX: e.clientX,
+      clientY: e.clientY,
+      devicePixelRatio: window.devicePixelRatio
+    });
+
+    // Calculate region bounds with proper rounding
     const region = {
-      x: Math.min(startPos.x, x),
-      y: Math.min(startPos.y, y),
-      width: Math.abs(x - startPos.x),
-      height: Math.abs(y - startPos.y)
+      x: Math.round(Math.min(startPos.x, x)),
+      y: Math.round(Math.min(startPos.y, y)),
+      width: Math.round(Math.abs(x - startPos.x)),
+      height: Math.round(Math.abs(y - startPos.y)),
+      devicePixelRatio: window.devicePixelRatio || 1
     };
+
+    console.log('Calculated region:', region);
+
+    // Validate region coordinates
+    if (region.x < 0 || region.y < 0 || region.width <= 0 || region.height <= 0) {
+      console.warn('Invalid region coordinates:', region);
+      setIsSelecting(false);
+      return;
+    }
+
+    // Check for reasonable maximum size (prevent extremely large selections)
+    const MAX_SELECTION_SIZE = 10000; // 10k pixels max
+    if (region.width > MAX_SELECTION_SIZE || region.height > MAX_SELECTION_SIZE) {
+      console.warn('Selection too large:', region);
+      setIsSelecting(false);
+      return;
+    }
 
     // Only capture if region is large enough (> 10px in both dimensions)
     if (region.width > 10 && region.height > 10) {
@@ -72,6 +101,7 @@ export default function CaptureOverlay({ onCapture, onCancel }) {
   const getSelectionStyle = () => {
     if (!isSelecting) return { display: 'none' };
 
+    // Since we're using viewport coordinates (clientX/Y), no scroll adjustment needed
     const left = Math.min(startPos.x, currentPos.x);
     const top = Math.min(startPos.y, currentPos.y);
     const width = Math.abs(currentPos.x - startPos.x);

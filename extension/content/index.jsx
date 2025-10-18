@@ -17,6 +17,9 @@ if (typeof chrome !== 'undefined' && chrome.runtime) {
       if (message.action === 'START_CAPTURE') {
         startCaptureMode();
         sendResponse({ success: true });
+      } else if (message.action === 'EXTRACT_TABLE') {
+        const tableData = extractTableAtPosition(message.clickX, message.clickY);
+        sendResponse({ success: !!tableData, tableData });
       }
     });
   }
@@ -89,5 +92,26 @@ function removeOverlay() {
   if (overlayContainer) {
     overlayContainer.remove();
     overlayContainer = null;
+  }
+}
+
+/**
+ * Extract table data at the given position
+ */
+function extractTableAtPosition(x, y) {
+  try {
+    // Find the element at the click position
+    const element = document.elementFromPoint(x, y);
+    if (!element) return null;
+
+    // Find the nearest table element
+    const table = element.closest('table');
+    if (!table) return null;
+
+    // Convert to HTML for AI processing
+    return table.outerHTML;
+  } catch (error) {
+    console.error('Error extracting table:', error);
+    return null;
   }
 }
