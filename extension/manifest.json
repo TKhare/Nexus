@@ -38,6 +38,13 @@
         "mac": "Command+Shift+S"
       },
       "description": "Capture screenshot with drag selection"
+    },
+    "capture-text": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+E",
+        "mac": "Command+Shift+E"
+      },
+      "description": "Capture selected text"
     }
   },
   "web_accessible_resources": [

@@ -18,14 +18,25 @@ export default function ApprovalCard({ capture, explanation, onExplanationChange
     loadImage();
   }, [capture.id]);
 
-  // Determine if we should show markdown content or image
+  // Determine if we should show markdown content, captured text, or image
   const hasMarkdownContent = capture.markdown_content && capture.markdown_content.trim().length > 0;
-  const shouldShowImage = !hasMarkdownContent || capture.content_type === 'diagram' || capture.content_type === 'visual' || capture.content_type === 'chart';
+  const hasCapturedText = capture.capturedText && capture.capturedText.trim().length > 0;
+  const hasImage = capture.imageUrl || imageUrl;
+  const shouldShowImage = (!hasMarkdownContent && !hasCapturedText && hasImage) || capture.content_type === 'diagram' || capture.content_type === 'visual' || capture.content_type === 'chart';
 
   return (
     <div className="approval-card">
-      {/* Content display - either markdown or image */}
-      {hasMarkdownContent && !shouldShowImage ? (
+      {/* Content display - markdown, captured text, or image */}
+      {hasCapturedText && !hasImage ? (
+        <div className="captured-text-preview">
+          <div className="content-type-badge">
+            📝 Captured Text
+          </div>
+          <div className="captured-text-content">
+            {capture.capturedText}
+          </div>
+        </div>
+      ) : hasMarkdownContent && !shouldShowImage ? (
         <div className="markdown-preview">
           <div className="content-type-badge">
             {capture.content_type === 'chart' && '📊 Chart'}
@@ -39,11 +50,11 @@ export default function ApprovalCard({ capture, explanation, onExplanationChange
             <MarkdownRenderer markdown={capture.markdown_content} />
           </div>
         </div>
-      ) : (
+      ) : hasImage ? (
         <div className="screenshot-preview">
           <img src={imageUrl} alt="Screenshot" />
         </div>
-      )}
+      ) : null}
 
       {/* AI Explanation */}
       <div className="explanation-section">
