@@ -12,10 +12,12 @@ import { Capture } from './models/Capture.js';
 // Track which tabs have content script injected
 const injectedTabs = new Set();
 
-// Listen for keyboard command (Ctrl+Shift+S or Cmd+Shift+S)
+// Listen for keyboard commands
 chrome.commands.onCommand.addListener((command) => {
   if (command === 'capture-screenshot') {
     initiateCapture();
+  } else if (command === 'capture-text') {
+    initiateTextCapture();
   }
 });
 
@@ -109,6 +111,52 @@ async function initiateCapture() {
 }
 
 /**
+ * Initiate text capture
+ */
+async function initiateTextCapture() {
+  try {
+    // Get active tab
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+
+    if (!tab) {
+      console.error('No active tab found');
+      return;
+    }
+
+    // Send message to get selected text
+    try {
+      await chrome.tabs.sendMessage(tab.id, {
+        action: 'CAPTURE_SELECTED_TEXT'
+      });
+    } catch (error) {
+      console.error('Error sending message to tab:', error);
+      // If content script not injected, inject it
+      try {
+        await chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          files: ['content/content.js']
+        });
+        
+        // Wait a bit and try again
+        setTimeout(async () => {
+          try {
+            await chrome.tabs.sendMessage(tab.id, {
+              action: 'CAPTURE_SELECTED_TEXT'
+            });
+          } catch (err) {
+            console.error('Failed to capture text after injection:', err);
+          }
+        }, 200);
+      } catch (injectionError) {
+        console.error('Failed to inject content script:', injectionError);
+      }
+    }
+  } catch (error) {
+    console.error('Error initiating text capture:', error);
+  }
+}
+
+/**
  * Listen for messages from content scripts and other parts of the extension
  */
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -120,6 +168,16 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         sendResponse({ success: false, error: error.message });
       });
     return true; // Will respond asynchronously
+  }
+
+  if (message.action === 'CAPTURE_TEXT') {
+    handleCaptureText(message, sender.tab)
+      .then(sendResponse)
+      .catch(error => {
+        console.error('Error handling text capture:', error);
+        sendResponse({ success: false, error: error.message });
+      });
+    return true;
   }
 
   if (message.action === 'GET_PENDING_CAPTURE') {
@@ -438,6 +496,63 @@ async function handleCaptureRegion(message, tab) {
 
   } catch (error) {
     console.error('Error in handleCaptureRegion:', error);
+    throw error;
+  }
+}
+
+/**
+ * Handle text capture from content script
+ */
+async function handleCaptureText(message, tab) {
+  try {
+    const { text } = message;
+
+    if (!text || !text.trim()) {
+      throw new Error('No text selected');
+    }
+
+    // Get existing sections to suggest
+    const existingSections = await storage.getSections();
+
+    // For text captures, we'll use the text as the explanation
+    // and let user edit/categorize it in the popup
+    const captureId = `capture_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+    // Create capture
+    const capture = new Capture({
+      id: captureId,
+      imageUrl: null, // No image for text capture
+      imagePath: null,
+      explanation: text, // Use captured text as explanation
+      section: existingSections.length > 0 ? existingSections[0] : 'General',
+      sourceUrl: tab.url,
+      timestamp: new Date().toISOString(),
+      capturedText: text // Store the original captured text
+    });
+
+    // Store as pending capture
+    await storage.setPendingCapture(capture.toJSON());
+
+    // Open popup for approval
+    console.log('Text capture ready for approval');
+
+    try {
+      await chrome.action.openPopup();
+    } catch (error) {
+      // If opening popup fails, show a notification
+      chrome.notifications.create({
+        type: 'basic',
+        iconUrl: 'icons/icon48.png',
+        title: 'Text Captured',
+        message: 'Click the extension icon to review and approve',
+        priority: 2
+      });
+    }
+
+    return { success: true, captureId };
+
+  } catch (error) {
+    console.error('Error in handleCaptureText:', error);
     throw error;
   }
 }
