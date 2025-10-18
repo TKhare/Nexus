@@ -5,6 +5,8 @@ import MarkdownEditor from './MarkdownEditor.jsx';
 import { DocumentBuilder } from '../utils/markdown.js';
 
 const STORAGE_KEY_EDITED_MARKDOWN = 'editedMarkdown';
+const STORAGE_KEY_LAST_EDIT_TIME = 'lastEditTime';
+const STORAGE_KEY_LAST_CAPTURE_TIME = 'lastCaptureTime';
 
 export default function Document() {
   const [markdown, setMarkdown] = useState('');
@@ -16,9 +18,11 @@ export default function Document() {
   useEffect(() => {
     loadDocument();
 
-    // Listen for storage changes to auto-refresh (only if not in edit mode)
-    const handleStorageChange = () => {
-      if (!isEditMode) {
+    // Listen for storage changes to detect new captures (only if not in edit mode)
+    const handleStorageChange = (changes, areaName) => {
+      if (!isEditMode && areaName === 'local' && changes.captures) {
+        // New capture detected - update last capture time and reload
+        chrome.storage.local.set({ [STORAGE_KEY_LAST_CAPTURE_TIME]: Date.now() });
         loadDocument();
       }
     };
@@ -34,15 +38,30 @@ export default function Document() {
     try {
       setLoading(true);
       
-      // Check if there's edited markdown in storage
-      const result = await chrome.storage.local.get([STORAGE_KEY_EDITED_MARKDOWN]);
-      const editedMarkdown = result[STORAGE_KEY_EDITED_MARKDOWN];
+      // Get timestamps and edited markdown
+      const result = await chrome.storage.local.get([
+        STORAGE_KEY_EDITED_MARKDOWN,
+        STORAGE_KEY_LAST_EDIT_TIME,
+        STORAGE_KEY_LAST_CAPTURE_TIME
+      ]);
       
-      if (editedMarkdown) {
-        // Use edited markdown as source of truth
+      const editedMarkdown = result[STORAGE_KEY_EDITED_MARKDOWN];
+      const lastEditTime = result[STORAGE_KEY_LAST_EDIT_TIME] || 0;
+      const lastCaptureTime = result[STORAGE_KEY_LAST_CAPTURE_TIME] || 0;
+      
+      // Decide which version to use based on last action
+      // If last capture is newer than last edit, regenerate from captures
+      // Otherwise, use edited markdown if it exists
+      if (lastCaptureTime > lastEditTime) {
+        // Capture was more recent - regenerate from captures
+        await documentBuilder.load();
+        const md = await documentBuilder.generateMarkdown(false);
+        setMarkdown(md);
+      } else if (editedMarkdown) {
+        // Edit was more recent - use edited markdown
         setMarkdown(editedMarkdown);
       } else {
-        // Generate from captures
+        // No edits or captures with timestamps - generate from captures
         await documentBuilder.load();
         const md = await documentBuilder.generateMarkdown(false);
         setMarkdown(md);
@@ -106,8 +125,11 @@ export default function Document() {
 
   const handleSaveMarkdown = async (editedMarkdown) => {
     try {
-      // Save edited markdown to storage
-      await chrome.storage.local.set({ [STORAGE_KEY_EDITED_MARKDOWN]: editedMarkdown });
+      // Save edited markdown and timestamp to storage
+      await chrome.storage.local.set({ 
+        [STORAGE_KEY_EDITED_MARKDOWN]: editedMarkdown,
+        [STORAGE_KEY_LAST_EDIT_TIME]: Date.now()
+      });
       setMarkdown(editedMarkdown);
       alert('Markdown saved successfully!');
     } catch (error) {

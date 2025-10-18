@@ -373,6 +373,9 @@ async function handleApproveCapture(capture) {
     // Save to captures
     await storage.saveCapture(capture);
 
+    // Update last capture time for document sync
+    await chrome.storage.local.set({ lastCaptureTime: Date.now() });
+
     // Clear pending
     await storage.clearPendingCapture();
 
