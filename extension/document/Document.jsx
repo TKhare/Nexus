@@ -2,7 +2,9 @@ import React, { useState, useEffect } from 'react';
 import Toolbar from './Toolbar.jsx';
 import MarkdownRenderer from './MarkdownRenderer.jsx';
 import MarkdownEditor from './MarkdownEditor.jsx';
+import KnowledgeGraph from './KnowledgeGraph.jsx';
 import { DocumentBuilder } from '../utils/markdown.js';
+import './knowledge-graph.css';
 
 const STORAGE_KEY_EDITED_MARKDOWN = 'editedMarkdown';
 
@@ -11,6 +13,7 @@ export default function Document() {
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState(null);
   const [isEditMode, setIsEditMode] = useState(false);
+  const [activeTab, setActiveTab] = useState('document');
   const documentBuilder = new DocumentBuilder();
 
   useEffect(() => {
@@ -133,25 +136,46 @@ export default function Document() {
 
   return (
     <div className="document-container">
-      <Toolbar
-        stats={stats}
-        onDownload={handleDownload}
-        onCopy={handleCopy}
-        onClear={handleClear}
-        onRefresh={handleRefresh}
-        onEditMode={handleEditMode}
-        isEditMode={isEditMode}
-      />
-      {isEditMode ? (
-        <MarkdownEditor
-          initialMarkdown={markdown}
-          onSave={handleSaveMarkdown}
-          onCancel={handleCancelEdit}
-        />
+      <div className="tab-navigation">
+        <button 
+          className={`tab-btn ${activeTab === 'document' ? 'active' : ''}`}
+          onClick={() => setActiveTab('document')}
+        >
+          Document
+        </button>
+        <button 
+          className={`tab-btn ${activeTab === 'graph' ? 'active' : ''}`}
+          onClick={() => setActiveTab('graph')}
+        >
+          Knowledge Graph
+        </button>
+      </div>
+      
+      {activeTab === 'document' ? (
+        <>
+          <Toolbar
+            stats={stats}
+            onDownload={handleDownload}
+            onCopy={handleCopy}
+            onClear={handleClear}
+            onRefresh={handleRefresh}
+            onEditMode={handleEditMode}
+            isEditMode={isEditMode}
+          />
+          {isEditMode ? (
+            <MarkdownEditor
+              initialMarkdown={markdown}
+              onSave={handleSaveMarkdown}
+              onCancel={handleCancelEdit}
+            />
+          ) : (
+            <div className="document-content">
+              <MarkdownRenderer markdown={markdown} />
+            </div>
+          )}
+        </>
       ) : (
-        <div className="document-content">
-          <MarkdownRenderer markdown={markdown} />
-        </div>
+        <KnowledgeGraph />
       )}
     </div>
   );

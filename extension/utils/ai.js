@@ -64,7 +64,8 @@ Format your response as valid JSON:
   "content_type": "text|code|equation|table|diagram|visual",
   "markdown_content": "Extracted content (if text-based) OR empty string (if visual)",
   "explanation": "Description of what the content shows",
-  "suggested_section": "Topic Name"
+  "suggested_section": "Topic Name",
+  "tags": ["tag1", "tag2", "tag3"]
 }`;
 
     const response = await fetch(API_CONFIG.endpoint, {
@@ -116,7 +117,8 @@ Format your response as valid JSON:
       content_type: result.content_type || 'text',
       markdown_content: result.markdown_content || '',
       explanation: result.explanation || 'No explanation provided',
-      suggested_section: result.suggested_section || 'General'
+      suggested_section: result.suggested_section || 'General',
+      tags: result.tags || []
     };
   } catch (error) {
     console.error('Error analyzing screenshot:', error);
@@ -127,6 +129,7 @@ Format your response as valid JSON:
       markdown_content: '',
       explanation: 'Unable to generate AI explanation. Please add your own notes.',
       suggested_section: 'General',
+      tags: [],
       error: error.message
     };
   }
@@ -190,7 +193,8 @@ Format your response as valid JSON:
   "content_type": "text|code|equation|list|definition",
   "markdown_content": "The formatted text as markdown",
   "explanation": "Brief context or additional notes (only if needed)",
-  "suggested_section": "Topic Name"
+  "suggested_section": "Topic Name",
+  "tags": ["tag1", "tag2", "tag3"]
 }`;
 
     const response = await fetch(API_CONFIG.endpoint, {
@@ -229,7 +233,8 @@ Format your response as valid JSON:
       content_type: result.content_type || 'text',
       markdown_content: result.markdown_content || text,
       explanation: result.explanation || '',
-      suggested_section: result.suggested_section || 'General'
+      suggested_section: result.suggested_section || 'General',
+      tags: result.tags || []
     };
   } catch (error) {
     console.error('Error analyzing text:', error);
@@ -240,6 +245,7 @@ Format your response as valid JSON:
       markdown_content: text,
       explanation: 'Unable to generate AI analysis. Text captured as-is.',
       suggested_section: 'General',
+      tags: [],
       error: error.message
     };
   }
@@ -300,7 +306,8 @@ Format your response as valid JSON:
   "content_type": "diagram|chart|code|equation|text|visual",
   "markdown_content": "Any extractable text content (if applicable)",
   "explanation": "Educational notes about what this image teaches",
-  "suggested_section": "Topic Name"
+  "suggested_section": "Topic Name",
+  "tags": ["tag1", "tag2", "tag3"]
 }`;
 
     const response2 = await fetch(API_CONFIG.endpoint, {
@@ -352,7 +359,8 @@ Format your response as valid JSON:
       content_type: result.content_type || 'visual',
       markdown_content: result.markdown_content || '',
       explanation: result.explanation || 'Educational content analysis',
-      suggested_section: result.suggested_section || 'General'
+      suggested_section: result.suggested_section || 'General',
+      tags: result.tags || []
     };
   } catch (error) {
     console.error('Error analyzing image:', error);
@@ -363,6 +371,7 @@ Format your response as valid JSON:
       markdown_content: '',
       explanation: 'Unable to analyze image. Please add your own notes.',
       suggested_section: 'General',
+      tags: [],
       error: error.message
     };
   }
@@ -397,7 +406,8 @@ Format your response as valid JSON:
   "content_type": "table",
   "markdown_content": "The table formatted as markdown",
   "explanation": "Brief description of what the table shows",
-  "suggested_section": "Topic Name"
+  "suggested_section": "Topic Name",
+  "tags": ["tag1", "tag2", "tag3"]
 }`;
 
     const response = await fetch(API_CONFIG.endpoint, {
@@ -436,7 +446,8 @@ Format your response as valid JSON:
       content_type: 'table',
       markdown_content: result.markdown_content || tableData,
       explanation: result.explanation || 'Table data captured',
-      suggested_section: result.suggested_section || 'General'
+      suggested_section: result.suggested_section || 'General',
+      tags: result.tags || []
     };
   } catch (error) {
     console.error('Error analyzing table:', error);
@@ -447,6 +458,7 @@ Format your response as valid JSON:
       markdown_content: tableData,
       explanation: 'Unable to generate AI analysis. Table captured as-is.',
       suggested_section: 'General',
+      tags: [],
       error: error.message
     };
   }

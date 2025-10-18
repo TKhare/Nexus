@@ -12,7 +12,8 @@ export class Capture {
     sourceUrl,
     timestamp,
     content_type,
-    markdown_content
+    markdown_content,
+    tags
   }) {
     this.id = id || this.generateId();
     this.imageUrl = imageUrl || null;
@@ -23,6 +24,7 @@ export class Capture {
     this.timestamp = timestamp || new Date().toISOString();
     this.content_type = content_type || 'text';
     this.markdown_content = markdown_content || '';
+    this.tags = tags || [];
   }
 
   generateId() {
@@ -39,7 +41,8 @@ export class Capture {
       sourceUrl: this.sourceUrl,
       timestamp: this.timestamp,
       content_type: this.content_type,
-      markdown_content: this.markdown_content
+      markdown_content: this.markdown_content,
+      tags: this.tags
     };
   }
 

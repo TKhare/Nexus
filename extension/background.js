@@ -4,6 +4,7 @@
  */
 
 import { analyzeScreenshot, analyzeText, analyzeImage, analyzeTable } from './utils/ai.js';
+import { API_CONFIG, CLAUDE_API_KEY } from './utils/apiConfig.js';
 import { storage } from './utils/storage.js';
 import { saveImage } from './utils/imageStorage.js';
 import { Capture } from './models/Capture.js';
@@ -141,7 +142,211 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       .catch(error => sendResponse({ success: false, error: error.message }));
     return true;
   }
+
+  if (message.action === 'CHAT_WITH_GRAPH') {
+    handleGraphChat(message, sender.tab)
+      .then(sendResponse)
+      .catch(error => {
+        console.error('Error handling graph chat:', error);
+        sendResponse({ success: false, error: error.message });
+      });
+    return true;
+  }
 });
+
+
+/**
+ * Handle graph chat with Claude API
+ */
+async function handleGraphChat(message, tab) {
+  try {
+    const { userMessage, captures, agent, agentPrompt } = message;
+    
+    // Handle web search agent differently - use Claude's native web search tool
+    if (agent === 'websearch') {
+      // Create context from captures for additional context
+      const context = captures.map(capture => ({
+        id: capture.id,
+        section: capture.section,
+        content_type: capture.content_type,
+        explanation: capture.explanation,
+        markdown_content: capture.markdown_content,
+        tags: capture.tags,
+        sourceUrl: capture.sourceUrl,
+        timestamp: capture.timestamp
+      }));
+
+      const prompt = `You are a Web Search Agent. The user asked: "${userMessage}"
+
+The user has these captures in their knowledge base for additional context:
+${context.map(capture => `
+- Section: ${capture.section}
+- Content Type: ${capture.content_type}
+- Explanation: ${capture.explanation}
+- Markdown Content: ${capture.markdown_content || 'N/A'}
+- Tags: ${capture.tags ? capture.tags.join(', ') : 'None'}
+- Source: ${capture.sourceUrl}
+- Timestamp: ${capture.timestamp}
+`).join('\n')}
+
+Please search the web for current information related to their question and provide a comprehensive response that:
+1. Uses web search to find up-to-date information
+2. Connects the web findings to their existing knowledge base when relevant
+3. Provides actionable insights based on current information
+4. Properly cites all web sources
+5. References captures by their content/section, not by ID
+
+Respond with a helpful, well-structured answer that includes proper citations.`;
+
+      const response = await fetch(API_CONFIG.endpoint, {
+        method: 'POST',
+        headers: {
+          'x-api-key': CLAUDE_API_KEY,
+          'anthropic-version': API_CONFIG.apiVersion,
+          'anthropic-dangerous-direct-browser-access': 'true',
+          'content-type': 'application/json'
+        },
+        body: JSON.stringify({
+          model: API_CONFIG.model,
+          max_tokens: API_CONFIG.maxTokens,
+          messages: [{
+            role: 'user',
+            content: prompt
+          }],
+          tools: [{
+            type: "web_search_20250305",
+            name: "web_search",
+            max_uses: 5
+          }]
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`API error: ${errorData.error?.message || response.statusText}`);
+      }
+
+      const data = await response.json();
+      
+      // Extract sources from web search citations
+      const sources = [];
+      if (data.content) {
+        data.content.forEach(block => {
+          if (block.type === 'text' && block.citations) {
+            block.citations.forEach(citation => {
+              if (citation.type === 'web_search_result_location') {
+                sources.push({
+                  title: citation.title,
+                  url: citation.url
+                });
+              }
+            });
+          }
+        });
+      }
+
+      // Extract the response text
+      let responseText = '';
+      if (data.content) {
+        data.content.forEach(block => {
+          if (block.type === 'text') {
+            responseText += block.text;
+          }
+        });
+      }
+      
+      return {
+        success: true,
+        response: responseText,
+        sources: sources
+      };
+    }
+    
+    // Regular agent handling for non-websearch agents
+    const context = captures.map(capture => ({
+      id: capture.id,
+      section: capture.section,
+      content_type: capture.content_type,
+      explanation: capture.explanation,
+      markdown_content: capture.markdown_content,
+      tags: capture.tags,
+      sourceUrl: capture.sourceUrl,
+      timestamp: capture.timestamp
+    }));
+
+    const prompt = `${agentPrompt || 'You are an AI assistant helping a user explore their knowledge graph and research notes.'}
+
+The user has the following captures in their knowledge base:
+${context.map(capture => `
+- Section: ${capture.section}
+- Content Type: ${capture.content_type}
+- Explanation: ${capture.explanation}
+- Markdown Content: ${capture.markdown_content || 'N/A'}
+- Tags: ${capture.tags ? capture.tags.join(', ') : 'None'}
+- Source: ${capture.sourceUrl}
+- Timestamp: ${capture.timestamp}
+`).join('\n')}
+
+User question: "${userMessage}"
+
+Please provide a helpful response based on the user's knowledge base. Reference captures by their content/section, not by ID. Format your response as JSON:
+
+{
+  "response": "Your helpful response here",
+  "sources": [
+    {
+      "title": "Brief title of the capture",
+      "url": "source_url"
+    }
+  ]
+}`;
+
+    const response = await fetch(API_CONFIG.endpoint, {
+      method: 'POST',
+      headers: {
+        'x-api-key': CLAUDE_API_KEY,
+        'anthropic-version': API_CONFIG.apiVersion,
+        'anthropic-dangerous-direct-browser-access': 'true',
+        'content-type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: API_CONFIG.model,
+        max_tokens: API_CONFIG.maxTokens,
+        messages: [{
+          role: 'user',
+          content: prompt
+        }]
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(`API error: ${errorData.error?.message || response.statusText}`);
+    }
+
+    const data = await response.json();
+    let responseText = data.content[0].text;
+
+    // Strip markdown code blocks if present
+    responseText = responseText.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+
+    // Parse JSON response
+    const result = JSON.parse(responseText);
+
+    return {
+      success: true,
+      response: result.response,
+      sources: result.sources || []
+    };
+
+  } catch (error) {
+    console.error('Error in graph chat:', error);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
 
 /**
  * Handle region capture from content script
@@ -182,7 +387,8 @@ async function handleCaptureRegion(message, tab) {
       sourceUrl: tab.url,
       timestamp: new Date().toISOString(),
       content_type: analysis.content_type,
-      markdown_content: analysis.markdown_content
+      markdown_content: analysis.markdown_content,
+      tags: analysis.tags
     });
 
     // Store as pending capture
@@ -486,7 +692,8 @@ async function handleTextCapture(info, tab) {
       sourceUrl: tab.url,
       timestamp: new Date().toISOString(),
       content_type: analysis.content_type,
-      markdown_content: analysis.markdown_content
+      markdown_content: analysis.markdown_content,
+      tags: analysis.tags
     });
 
     // Store as pending capture
@@ -546,7 +753,8 @@ async function handleImageCapture(info, tab) {
       sourceUrl: tab.url,
       timestamp: new Date().toISOString(),
       content_type: analysis.content_type,
-      markdown_content: analysis.markdown_content
+      markdown_content: analysis.markdown_content,
+      tags: analysis.tags
     });
 
     // Store as pending capture
