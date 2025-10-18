@@ -20,6 +20,7 @@ export default function Document() {
 
   useEffect(() => {
     loadDocument();
+    checkForFocusedCapture();
 
     // Listen for storage changes to detect new captures (only if not in edit mode)
     const handleStorageChange = (changes, areaName) => {
@@ -36,6 +37,18 @@ export default function Document() {
       chrome.storage.onChanged.removeListener(handleStorageChange);
     };
   }, [isEditMode]);
+
+  const checkForFocusedCapture = async () => {
+    try {
+      const result = await chrome.storage.local.get(['focusCaptureId']);
+      if (result.focusCaptureId) {
+        // Switch to graph tab when there's a focused capture
+        setActiveTab('graph');
+      }
+    } catch (error) {
+      console.error('Error checking for focused capture:', error);
+    }
+  };
 
   const loadDocument = async () => {
     try {

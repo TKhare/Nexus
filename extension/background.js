@@ -160,7 +160,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
  */
 async function handleGraphChat(message, tab) {
   try {
-    const { userMessage, captures, agent, agentPrompt } = message;
+    const { userMessage, captures, agent, agentPrompt, focusedCapture } = message;
     
     // Handle web search agent differently - use Claude's native web search tool
     if (agent === 'websearch') {
@@ -178,7 +178,18 @@ async function handleGraphChat(message, tab) {
 
       const prompt = `You are a Web Search Agent. The user asked: "${userMessage}"
 
-The user has these captures in their knowledge base for additional context:
+${focusedCapture ? `IMPORTANT: The user is specifically focused on this recent capture:
+- Section: ${focusedCapture.section}
+- Content Type: ${focusedCapture.content_type}
+- Explanation: ${focusedCapture.explanation}
+- Markdown Content: ${focusedCapture.markdown_content || 'N/A'}
+- Tags: ${focusedCapture.tags ? focusedCapture.tags.join(', ') : 'None'}
+- Source: ${focusedCapture.sourceUrl}
+- Timestamp: ${focusedCapture.timestamp}
+
+Please pay special attention to this capture and connect your web search findings to it specifically.
+
+` : ''}The user has these captures in their knowledge base for additional context:
 ${context.map(capture => `
 - Section: ${capture.section}
 - Content Type: ${capture.content_type}
@@ -191,7 +202,7 @@ ${context.map(capture => `
 
 Please search the web for current information related to their question and provide a comprehensive response that:
 1. Uses web search to find up-to-date information
-2. Connects the web findings to their existing knowledge base when relevant
+2. ${focusedCapture ? 'Focuses heavily on the recent capture mentioned above' : 'Connects the web findings to their existing knowledge base when relevant'}
 3. Provides actionable insights based on current information
 4. Properly cites all web sources
 5. References captures by their content/section, not by ID
@@ -276,7 +287,18 @@ Respond with a helpful, well-structured answer that includes proper citations.`;
 
     const prompt = `${agentPrompt || 'You are an AI assistant helping a user explore their knowledge graph and research notes.'}
 
-The user has the following captures in their knowledge base:
+${focusedCapture ? `IMPORTANT: The user is specifically focused on this recent capture:
+- Section: ${focusedCapture.section}
+- Content Type: ${focusedCapture.content_type}
+- Explanation: ${focusedCapture.explanation}
+- Markdown Content: ${focusedCapture.markdown_content || 'N/A'}
+- Tags: ${focusedCapture.tags ? focusedCapture.tags.join(', ') : 'None'}
+- Source: ${focusedCapture.sourceUrl}
+- Timestamp: ${focusedCapture.timestamp}
+
+Please pay special attention to this capture and focus your response on it specifically.
+
+` : ''}The user has the following captures in their knowledge base:
 ${context.map(capture => `
 - Section: ${capture.section}
 - Content Type: ${capture.content_type}
@@ -289,7 +311,7 @@ ${context.map(capture => `
 
 User question: "${userMessage}"
 
-Please provide a helpful response based on the user's knowledge base. Reference captures by their content/section, not by ID. Format your response as JSON:
+Please provide a helpful response based on the user's knowledge base. ${focusedCapture ? 'Focus heavily on the recent capture mentioned above.' : 'Reference captures by their content/section, not by ID.'} Format your response as JSON:
 
 {
   "response": "Your helpful response here",

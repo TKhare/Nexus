@@ -187,6 +187,125 @@
   font-size: 24px;
 }
 
+.focused-capture {
+  background: #e3f2fd;
+  border: 2px solid #4A90E2;
+  border-radius: 12px;
+  padding: 20px;
+  margin: 20px 0;
+  text-align: left;
+}
+
+.chat-message.system {
+  background: #f0f8ff;
+  border: 1px solid #4A90E2;
+  border-radius: 12px;
+  margin-bottom: 16px;
+  padding: 16px;
+  text-align: left;
+}
+
+.chat-message.system .message-agent {
+  margin-bottom: 12px;
+}
+
+.chat-message.system .agent-name {
+  color: #4A90E2;
+  font-weight: 600;
+}
+
+.focused-capture-message h4 {
+  margin: 0 0 12px;
+  color: #4A90E2;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.focused-capture h4,
+.focused-capture-persistent h4 {
+  margin: 0 0 16px;
+  color: #4A90E2;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.focused-capture-persistent h4 {
+  font-size: 16px;
+  margin: 0 0 12px;
+}
+
+.capture-preview {
+  background: white;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+  border: 1px solid #d0d0d0;
+}
+
+.capture-preview strong {
+  color: #333;
+  font-size: 16px;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.capture-preview p {
+  color: #666;
+  margin: 0 0 12px;
+  line-height: 1.5;
+}
+
+.markdown-preview {
+  background: #f8f9fa;
+  border-radius: 6px;
+  padding: 12px;
+  border-left: 3px solid #4A90E2;
+  font-size: 14px;
+}
+
+.capture-actions {
+  display: flex;
+  gap: 12px;
+  margin: 16px 0;
+  justify-content: center;
+}
+
+.btn-save-capture {
+  background: #28a745;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-save-capture:hover {
+  background: #218838;
+}
+
+.btn-clear-focus {
+  background: #6c757d;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-clear-focus:hover {
+  background: #5a6268;
+}
+
 .welcome-message p {
   margin: 16px 0;
   font-size: 16px;

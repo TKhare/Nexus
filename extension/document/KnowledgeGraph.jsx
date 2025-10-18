@@ -48,10 +48,61 @@ export default function KnowledgeGraph() {
   const [isLoadingChat, setIsLoadingChat] = useState(false);
   const [selectedAgent, setSelectedAgent] = useState('research');
   const [showAgentSelector, setShowAgentSelector] = useState(false);
+  const [focusedCapture, setFocusedCapture] = useState(null);
 
   useEffect(() => {
     loadCaptures();
+    // Add a small delay to ensure captures are loaded before checking for focused capture
+    setTimeout(checkForFocusedCapture, 100);
   }, []);
+
+  const checkForFocusedCapture = async () => {
+    try {
+      const result = await chrome.storage.local.get([
+        'focusCaptureId', 
+        'popupChatHistory', 
+        'popupSelectedAgent', 
+        'popupChatContext'
+      ]);
+      console.log('Checking for focused capture and chat context:', result);
+      
+      if (result.focusCaptureId) {
+        // Load all captures to find the focused one
+        const capturesResult = await chrome.storage.local.get(['captures']);
+        const allCaptures = capturesResult.captures || [];
+        console.log('All captures:', allCaptures);
+        
+        const focused = allCaptures.find(c => c.id === result.focusCaptureId);
+        console.log('Found focused capture:', focused);
+        
+        if (focused) {
+          setFocusedCapture(focused);
+          
+          // Check if we have transferred chat context from popup
+          if (result.popupChatContext === 'transfer' && result.popupChatHistory) {
+            console.log('Transferring chat history from popup:', result.popupChatHistory);
+            setChatHistory(result.popupChatHistory);
+            
+            if (result.popupSelectedAgent) {
+              setSelectedAgent(result.popupSelectedAgent);
+            }
+          }
+        } else {
+          console.log('Focused capture not found in captures list');
+        }
+        
+        // Clear all the transfer data after using it
+        await chrome.storage.local.remove([
+          'focusCaptureId', 
+          'popupChatHistory', 
+          'popupSelectedAgent', 
+          'popupChatContext'
+        ]);
+      }
+    } catch (error) {
+      console.error('Error checking for focused capture:', error);
+    }
+  };
 
   // Close agent dropdown when clicking outside
   useEffect(() => {
@@ -98,7 +149,8 @@ export default function KnowledgeGraph() {
         userMessage: userMessage,
         captures: captures,
         agent: selectedAgent,
-        agentPrompt: AGENTS[selectedAgent].prompt
+        agentPrompt: AGENTS[selectedAgent].prompt,
+        focusedCapture: focusedCapture
       });
 
       if (response.success) {
@@ -189,6 +241,49 @@ export default function KnowledgeGraph() {
 
       <div className="chat-interface">
         <div className="chat-history">
+          {/* Always show focused capture as a system message if it exists */}
+          {focusedCapture && (
+            <div className="chat-message system">
+              <div className="message-agent">
+                <span className="agent-icon">🎯</span>
+                <span className="agent-name">System</span>
+              </div>
+              <div className="message-content">
+                <div className="focused-capture-message">
+                  <h4>Focused on Recent Capture</h4>
+                  <div className="capture-preview">
+                    <strong>{focusedCapture.section}</strong>
+                    <p>{focusedCapture.explanation}</p>
+                    {focusedCapture.markdown_content && (
+                      <div className="markdown-preview">
+                        <MarkdownRenderer markdown={focusedCapture.markdown_content} />
+                      </div>
+                    )}
+                  </div>
+                  <div className="capture-actions">
+                    <button 
+                      className="btn-save-capture"
+                      onClick={() => {
+                        alert('This capture is already saved to your notes!');
+                      }}
+                    >
+                      ✅ Already Saved to Notes
+                    </button>
+                    <button 
+                      className="btn-clear-focus"
+                      onClick={() => {
+                        setFocusedCapture(null);
+                        setChatMessage('');
+                      }}
+                    >
+                      Clear Focus
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {chatHistory.length === 0 ? (
             <div className="welcome-message">
               <div className="agent-intro">
@@ -196,48 +291,64 @@ export default function KnowledgeGraph() {
                 <h3>Welcome to {AGENTS[selectedAgent].name}!</h3>
                 <p>{AGENTS[selectedAgent].description}</p>
               </div>
-              <p>I can help you with your research in the following ways:</p>
-              <ul>
-                <li>Find specific information across all your captures</li>
-                <li>Connect related topics and concepts</li>
-                <li>Summarize content from specific sections</li>
-                <li>Answer questions about your research</li>
-              </ul>
+              
+              {!focusedCapture && (
+                <>
+                  <p>I can help you with your research in the following ways:</p>
+                  <ul>
+                    <li>Find specific information across all your captures</li>
+                    <li>Connect related topics and concepts</li>
+                    <li>Summarize content from specific sections</li>
+                    <li>Answer questions about your research</li>
+                  </ul>
+                </>
+              )}
+              
               <p>Try asking something like:</p>
               <div className="example-questions">
-                {selectedAgent === 'research' && (
+                {focusedCapture ? (
                   <>
-                    <div className="example-question">"What patterns do you see in my research?"</div>
-                    <div className="example-question">"What are the main themes across my captures?"</div>
-                    <div className="example-question">"What should I research next based on my notes?"</div>
+                    <div className="example-question">"What are the key insights from this capture?"</div>
+                    <div className="example-question">"How does this relate to my other research?"</div>
+                    <div className="example-question">"What should I explore next based on this?"</div>
                   </>
-                )}
-                {selectedAgent === 'websearch' && (
+                ) : (
                   <>
-                    <div className="example-question">"Search for latest AI research papers"</div>
-                    <div className="example-question">"Find recent developments in machine learning"</div>
-                    <div className="example-question">"Look up current trends in browser extensions"</div>
-                  </>
-                )}
-                {selectedAgent === 'analysis' && (
-                  <>
-                    <div className="example-question">"What are the limitations of this approach?"</div>
-                    <div className="example-question">"What are the implications of this research?"</div>
-                    <div className="example-question">"What critical questions should I consider?"</div>
-                  </>
-                )}
-                {selectedAgent === 'summarizer' && (
-                  <>
-                    <div className="example-question">"Summarize my notes on machine learning"</div>
-                    <div className="example-question">"What are the key takeaways from this section?"</div>
-                    <div className="example-question">"Give me a concise overview of my research"</div>
-                  </>
-                )}
-                {selectedAgent === 'connector' && (
-                  <>
-                    <div className="example-question">"How do these topics connect?"</div>
-                    <div className="example-question">"What unexpected relationships do you see?"</div>
-                    <div className="example-question">"What links between my notes am I missing?"</div>
+                    {selectedAgent === 'research' && (
+                      <>
+                        <div className="example-question">"What patterns do you see in my research?"</div>
+                        <div className="example-question">"What are the main themes across my captures?"</div>
+                        <div className="example-question">"What should I research next based on my notes?"</div>
+                      </>
+                    )}
+                    {selectedAgent === 'websearch' && (
+                      <>
+                        <div className="example-question">"Search for latest AI research papers"</div>
+                        <div className="example-question">"Find recent developments in machine learning"</div>
+                        <div className="example-question">"Look up current trends in browser extensions"</div>
+                      </>
+                    )}
+                    {selectedAgent === 'analysis' && (
+                      <>
+                        <div className="example-question">"What are the limitations of this approach?"</div>
+                        <div className="example-question">"What are the implications of this research?"</div>
+                        <div className="example-question">"What critical questions should I consider?"</div>
+                      </>
+                    )}
+                    {selectedAgent === 'summarizer' && (
+                      <>
+                        <div className="example-question">"Summarize my notes on machine learning"</div>
+                        <div className="example-question">"What are the key takeaways from this section?"</div>
+                        <div className="example-question">"Give me a concise overview of my research"</div>
+                      </>
+                    )}
+                    {selectedAgent === 'connector' && (
+                      <>
+                        <div className="example-question">"How do these topics connect?"</div>
+                        <div className="example-question">"What unexpected relationships do you see?"</div>
+                        <div className="example-question">"What links between my notes am I missing?"</div>
+                      </>
+                    )}
                   </>
                 )}
               </div>
