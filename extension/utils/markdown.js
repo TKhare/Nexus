@@ -50,11 +50,19 @@ export class DocumentBuilder {
       md += `## ${sectionName}\n\n`;
 
       for (const capture of captures) {
+        // Check if this is a text-only capture (no image)
+        const hasCapturedText = capture.capturedText && capture.capturedText.trim().length > 0;
+        const hasImage = capture.imageUrl || capture.imagePath;
+        
         // Check if we have markdown content to use instead of image
         const hasMarkdownContent = capture.markdown_content && capture.markdown_content.trim().length > 0;
-        const shouldShowImage = !hasMarkdownContent || capture.content_type === 'diagram' || capture.content_type === 'visual' || capture.content_type === 'chart';
+        const shouldShowImage = (!hasMarkdownContent && hasImage) || capture.content_type === 'diagram' || capture.content_type === 'visual' || capture.content_type === 'chart';
 
-        if (hasMarkdownContent && !shouldShowImage) {
+        // Handle text-only captures (no image)
+        if (hasCapturedText && !hasImage) {
+          md += `### 📝 Captured Text\n\n`;
+          md += `> ${capture.capturedText.split('\n').join('\n> ')}\n\n`;
+        } else if (hasMarkdownContent && !shouldShowImage) {
           // Use markdown content instead of image
           md += `### ${capture.content_type === 'code' ? '📝 Code' : 
                      capture.content_type === 'equation' ? '🧮 Equation' :
@@ -65,8 +73,8 @@ export class DocumentBuilder {
                      capture.content_type === 'visual' ? '📈 Visual Content' : 'Content'}\n\n`;
           
           md += `${capture.markdown_content}\n\n`;
-        } else {
-          // Use image as before
+        } else if (hasImage) {
+          // Use image
           let imageRef = capture.imagePath || capture.imageUrl;
 
           // If embedding images, load from IndexedDB and convert to base64
